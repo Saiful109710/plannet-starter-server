@@ -48,27 +48,14 @@ const client = new MongoClient(uri, {
 })
 async function run() {
 
-  const userCollection = client.db('plant-net').collection('users')
 
-  // save or update a user in db
 
-  app.post('/users/:email',async(req,res)=>{
-    const email = req.params.email
-    const query = {email}
-    const user = req.body
-
-    // check if user already exist in db
-
-    const isExist = await userCollection.findOne(query)
-
-    if(isExist){
-      return res.send(isExist)
-    }
-
-    const result = await userCollection.insertOne({...user,timestamp:Date.now()})
-    res.send(result)
-  })
+ 
   try {
+
+    const userCollection = client.db('plant-net').collection('users')
+    const plantsCollection = client.db('plant-net').collection('plants')
+    const orderCollection = client.db('plant-net').collection('orders')
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body
@@ -97,6 +84,60 @@ async function run() {
         res.status(500).send(err)
       }
     })
+
+
+     // save or update a user in db
+
+  app.post('/users/:email',async(req,res)=>{
+    const email = req.params.email
+    const query = {email}
+    const user = req.body
+    console.log(user)
+
+    // check if user already exist in db
+
+    const isExist = await userCollection.findOne(query)
+
+    if(isExist){
+      return res.send(isExist)
+    }
+
+    const result = await userCollection.insertOne({...user,timestamp:Date.now(),role:'customer'})
+    res.send(result)
+  })
+
+
+
+  app.get('/plants',async(req,res)=>{
+      const result = await plantsCollection.find().toArray()
+      res.send(result)
+  })
+
+  // save plant data in db
+
+
+  app.post('/plants',verifyToken,async(req,res)=>{
+    const plant = req.body
+    const result = await plantsCollection.insertOne(plant)
+    res.send(result)
+  })
+
+  // get plant data by id
+  app.get('/plants/:id',async(req,res)=>{
+    const id  = req.params.id
+    const query = {_id:new ObjectId(id)}
+    const result = await plantsCollection.findOne(query)
+    res.send(result)
+  })
+
+  // save order data in db
+
+  app.post('/order',verifyToken,async(req,res)=>{
+    const orderInfo = req.body
+    console.log(orderInfo)
+    const result = await orderCollection.insertOne(orderInfo)
+    res.send(result)
+  })
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
